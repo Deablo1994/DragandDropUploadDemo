@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>TODO supply a title</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+
+        <style>
+            /*set style of drop area*/
+            .droppable { background: #08c; color: #fff; padding: 50px 0; text-align: center; }
+
+            /*change color of drop area on mouseover*/
+            .droppable.dragover { background: #00CC71; }
+        </style>
+
+        <script>
+            var files;
+
+            /////function to show preview of file/////
+            function readandpreview(files, imageid)
+            {
+                var firstfile = files[0];
+
+                var reader = new FileReader();
+
+                reader.onload = function ()
+                {
+                    if (firstfile.type.indexOf("image") !== -1)
+                    {
+                        document.getElementById(imageid).src = reader.result;
+                    } else if (firstfile.type.indexOf("audio") !== -1)
+                    {
+                        document.getElementById(imageid).src = "audio.jpg";
+                    } else if (firstfile.type.indexOf("video") !== -1)
+                    {
+                        document.getElementById(imageid).src = "video.jpg";
+                    } else
+                    {
+                        document.getElementById(imageid).src = "other.png";
+                    }
+                    document.getElementById(imageid).style.display = 'block';
+                    document.getElementById("preText").innerHTML = "Preview"
+                };
+
+                reader.readAsDataURL(firstfile);
+            }
+
+            /////function that changes color of drag area when something is dragged over it/////
+            function dragovercall(event)
+            {
+                event.preventDefault();
+                event.stopPropagation();
+                document.getElementById('droppable').classList.add('dragover');
+            }
+
+            /////function that returns color of drag area to original when dragging mouse moces out/////
+            function dragleavecall(event)
+            {
+                event.preventDefault();
+                event.stopPropagation();
+                document.getElementById('droppable').classList.remove('dragover');
+            }
+
+            /////function to pick up dropped files/////
+            function dropcall(event)
+            {
+                event.preventDefault();
+                event.stopPropagation();
+                document.getElementById('droppable').classList.remove('dragover');
+
+                files = event.dataTransfer.files;
+
+                console.log(files);
+
+                readandpreview(files, 'imv');
+            }
+
+            /////function to get file from input type select/////
+            function changecal(event)
+            {
+                files = event.target.files;
+
+                console.log(files);
+
+                readandpreview(files, 'imv');
+            }
+
+            /////function to upload file/////
+            function uploadfile()
+            {
+                var formdata = new FormData();
+
+                formdata.append('file', files[0]);
+
+                var xml = new XMLHttpRequest();
+
+                /////Progress Event Listener that updates the progressBar/////
+                xml.upload.addEventListener('progress', function (evt) {
+                    if (evt.lengthComputable)
+                    {
+                        var per = parseInt((evt.loaded * 100) / evt.total);
+                        document.getElementById('progressBar').style.width = per + '%';
+                        document.getElementById('progressBar').innerHTML = per + '% uploaded';
+
+                        if (per == 100)
+                        {
+                            document.getElementById('progressDiv').style.display = 'none';
+                            document.getElementById('progressBar').style.width = '0%';
+                            document.getElementById('progressBar').innerHTML = '0% uploaded';
+                        }
+                    }
+                }, false);
+
+                xml.onreadystatechange = function ()
+                {
+                    if (xml.readyState == 4 && xml.status == 200)
+                    {
+                        var response = xml.responseText.trim();
+                        if (response == 'success')
+                        {
+                            alertDiv.innerHTML = "File Uploaded Successfuly to: <a href='Uploads/" + files[0].name + "'>/Uploads/" + files[0].name + "</a>";
+                            alertDiv.style.display = "block";
+                        } else
+                        {
+                            alert(response);
+                        }
+                    }
+                };
+                xml.open('POST', './SimpleDragandDropUploadServlet', true);
+                xml.send(formdata);
+
+                document.getElementById('progressDiv').style.display = 'block';
+            }
+        </script>
+    </head>
+    <body>
+        <div class="container">
+            <div class="droppable" id="droppable"
+                 ondragover="dragovercall(event)"
+                 ondragleave="dragleavecall(event)"
+                 ondrop="dropcall(event)">
+
+                <h2>Drop your file here.</h2>
+                <h2>OR</h2>
+                <h2><input type="file" onchange="changecal(event)" style="margin-left: 350px"></h2>
+            </div>
+            <br>
+            <!--Progress Bar-->
+            <div class="col-sm-8 col-sm-offset-2">
+                <div class="progress" id="progressDiv" style="display: none">
+                    <div class="progress-bar progress-bar-striped active" id="progressBar" role="progressbar" style="width: 0%"></div>
+                </div>
+            </div>
+            <br>
+            <div class="col-sm-4 col-sm-offset-2">
+                <img id="imv" style="display: none; width: 150px">
+                <label id="preText">Preview of the file will be shown here</label>
+            </div>
+            <div class="col-sm-6" style="margin-top: 75px">
+                <input type="button" value="Upload" class="btn btn-primary" onclick="uploadfile()">
+                <div class="alert alert-success" id="alertDiv" style="display: none"></div>
+            </div>
+        </div>
+    </body>
+</html>
